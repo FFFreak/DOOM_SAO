@@ -34,8 +34,9 @@
  ****************************************************************************
  */
  
-#include <Adafruit_GFX.h>   
-#include <Adafruit_ST7789.h> 
+// #include <Adafruit_GFX.h>   
+// #include <Adafruit_ST7789.h> 
+#include "spi_lcd.h" //Mr Optimization TFT
 #include <Wire.h>
 #include "FlashStorage.h"
 #include "DG_Faces.h"
@@ -55,7 +56,20 @@
 #define BUFFSIZE          5000
 #define TIMEOUT           1000
 
+// Some ready-made 16-bit ('565') color settings:
+#define	ST77XX_BLACK      0x0000
+#define ST77XX_WHITE      0xFFFF
+#define	ST77XX_RED        0xF800
+#define	ST77XX_GREEN      0x07E0
+#define	ST77XX_BLUE       0x001F
+#define ST77XX_CYAN       0x07FF
+#define ST77XX_MAGENTA    0xF81F
+#define ST77XX_YELLOW     0xFFE0
+#define	ST77XX_ORANGE     0xFC00
+
 uint32_t buffer[BUFFSIZE];
+ 
+uint16_t PictureBUFFER[240]; //Mr Optimization TFT
 
 int16_t dg_offset_x = 16;
 int16_t dg_offset_y = 0;
@@ -138,7 +152,9 @@ bool m6_persistence_init_test = false;
 
 bool m7_airplane = false;
 
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+//Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+// Mr Optimization - put your setup code here, to run once:
+spilcdInit(LCD_ST7789, 0, 1, 40000000, -1, 8, 9, -1, -1, -1, -1); // 40Mhz, let see if a 48 MHZ board can do this.
 
 void macro_splash()
 {
@@ -706,15 +722,18 @@ void setup(void)
   pinMode(GPIO2, INPUT);
   
   // Init ST7789 240x240
-  tft.init(240, 240);             
-  tft.setRotation(2);
+  //tft.init(240, 240);             
+  //tft.setRotation(2);
 
-  tft.fillScreen(ST77XX_WHITE);
-
+  // tft.fillScreen(ST77XX_WHITE);
+  spilcdFill(ST77XX_WHITE);
+ 
   // That sweet MacroFab Sponsorship
-  render(MF_Logo, sizeof(MF_Logo)/2, mf_offset_x, mf_offset_y, mf_pixel_size, mf_rez_x);
+  const uint16_t *pImage = MF_Logo
+  render(pImage, sizeof(MF_Logo)/2, mf_offset_x, mf_offset_y, mf_pixel_size, mf_rez_x);
   delay(500);
-  tft.fillScreen(ST77XX_WHITE);
+  // tft.fillScreen(ST77XX_WHITE);
+  spilcdFill(ST77XX_WHITE);
 
   // Load stored data
   data = sao_flash_store.read();
@@ -1076,31 +1095,33 @@ void run_sao_mode_0(uint8_t face_dir)
   return;
 }
 
-
-void render(const uint16_t pixel_array[], int16_t siz, int16_t offset_x, int16_t offset_y, int16_t pixel_size, int16_t rez_x)
+//Mr Optimizations Render
+void render(const uint16_t *pImage, int pixels, int xoff, int yoff, int scale, int src_width)
 {
-  int16_t x_loc = 0;
-  int16_t y_loc = 0;
+  int src_height = pixels / src_width;
+  int i, x, y;
+  uint16_t pixel, *d, *s = (uint16_t *)pImage;
 
-  int16_t x = 0;
-  int16_t y = 0;
-
-  for(int i = 0; i < siz; i++)
-  {    
-    x = (x_loc * pixel_size) + offset_x; 
-    y = (y_loc * pixel_size) + offset_y;
-    tft.fillRect(x, y, pixel_size, pixel_size, pixel_array[x_loc + (y_loc * rez_x)]);
-  
-    x_loc++;
-    if(x_loc == rez_x)
+  // Set destination 'window' on LCD
+  spilcdSetPosition(xoff, yoff, src_width*scale, src_height*scale);
+  for (y=0; y<src_height; y++)
+  {
+    // prepare buffer
+    d = &PictureBUFFER[0];
+    for (x=0; x<src_width; x++)
     {
-      x_loc = 0;
-      y_loc++;
-    }
-  }
-
+      pixel = *s++;
+      pixel = (pixel >> 8) | (pixel << 8); // DEBUG - fix the source color info
+      for (i=0; i<scale; i++)
+         *d++ = pixel;
+    } // for x
+    // Write the line 'scale' times to the display
+    for (i=0; i<scale; i++)
+       spilcdWriteDataBlock((uint8_t *)PictureBUFFER, scale*src_width*2);
+  } // for y
   return;
-}
+} /* render() */
+
 
 void write_to_eeprom(uint8_t address, uint8_t value)
 {
