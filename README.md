@@ -1,3 +1,9 @@
+My Badge stopped functioning with "Unknown USB device" on REVision 1 - DO NOT RECOMMEND FLASHING THIS
+It is guessed that the board is browning out possably from the 40mhz TFT init, i will set it to 5mhz for the time being.
+Should still be fast enough to update the screen in 12 ms...
+However, I am unsure if that is the cause - FLASH at your own risk!!
+
+
 ### DOOM Shitty Add On Features
 ***
 **Add on for conference badges that features a LCD Screen and DOOM Guy.**
