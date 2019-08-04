@@ -154,7 +154,7 @@ bool m7_airplane = false;
 
 //Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 // Mr Optimization - put your setup code here, to run once:
-spilcdInit(LCD_ST7789, 0, 1, 40000000, -1, 8, 9, -1, -1, -1, -1); // 40Mhz, let see if a 48 MHZ board can do this.
+spilcdInit(LCD_ST7789, 0, 1, 5000000, -1, 8, 9, -1, -1, -1, -1); // 5Mhz, let see if a 48 MHZ board can do this.
 
 void macro_splash()
 {
@@ -731,7 +731,7 @@ void setup(void)
   // That sweet MacroFab Sponsorship
   const uint16_t *pImage = MF_Logo
   render(pImage, sizeof(MF_Logo)/2, mf_offset_x, mf_offset_y, mf_pixel_size, mf_rez_x);
-  delay(500);
+  delay(1000);
   // tft.fillScreen(ST77XX_WHITE);
   spilcdFill(ST77XX_WHITE);
 
@@ -809,7 +809,8 @@ void loop()
       }
     }
     run_sao_mode_0(cycle);
-    delay(500);
+    //delay(500);
+   delay(350);
   }
   
   // It is better to disable the animation and the delays so they have real time control of the MCU.
